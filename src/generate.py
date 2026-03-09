@@ -16,15 +16,19 @@ OUTPUT_DIR = Path("data/output")
 SCHEMA_VERSION = 46
 
 
-def _dt_to_unix_ms(dt: datetime) -> int:
-    """Convert datetime to Unix milliseconds (Drift stores dates this way)."""
-    return int(dt.timestamp() * 1000)
+def _dt_to_unix_s(dt: datetime) -> int:
+    """Convert datetime to Unix seconds.
+
+    Cashew uses Drift 2.14 with DriftSqlType.dateTime, which stores DateTime
+    values as INTEGER Unix timestamps in SECONDS (not milliseconds).
+    """
+    return int(dt.timestamp())
 
 
-def _dt_to_unix_ms_or_null(dt: datetime | None) -> int | None:
+def _dt_to_unix_s_or_null(dt: datetime | None) -> int | None:
     if dt is None:
         return None
-    return _dt_to_unix_ms(dt)
+    return _dt_to_unix_s(dt)
 
 
 def _create_tables(conn: sqlite3.Connection) -> None:
@@ -209,7 +213,7 @@ def _insert_wallets(conn: sqlite3.Connection, data: CashewData) -> None:
         [
             (
                 w.walletPk, w.name, w.colour, w.iconName,
-                _dt_to_unix_ms(w.dateCreated), _dt_to_unix_ms(w.dateTimeModified),
+                _dt_to_unix_s(w.dateCreated), _dt_to_unix_s(w.dateTimeModified),
                 w.order, w.currency, w.currencyFormat, w.decimals,
                 w.homePageWidgetDisplay,
             )
@@ -228,7 +232,7 @@ def _insert_categories(conn: sqlite3.Connection, data: CashewData) -> None:
         [
             (
                 c.categoryPk, c.name, c.colour, c.iconName, c.emojiIconName,
-                _dt_to_unix_ms(c.dateCreated), _dt_to_unix_ms(c.dateTimeModified),
+                _dt_to_unix_s(c.dateCreated), _dt_to_unix_s(c.dateTimeModified),
                 c.order, int(c.income), c.methodAdded, c.mainCategoryPk,
             )
             for c in data.categories
@@ -254,16 +258,16 @@ def _insert_transactions(conn: sqlite3.Connection, data: CashewData) -> None:
             (
                 t.transactionPk, t.pairedTransactionFk, t.name, t.amount, t.note,
                 t.categoryFk, t.subCategoryFk, t.walletFk,
-                _dt_to_unix_ms(t.dateCreated), _dt_to_unix_ms(t.dateTimeModified),
-                _dt_to_unix_ms_or_null(t.originalDateDue),
+                _dt_to_unix_s(t.dateCreated), _dt_to_unix_s(t.dateTimeModified),
+                _dt_to_unix_s_or_null(t.originalDateDue),
                 int(t.income), t.periodLength, t.reoccurrence,
-                _dt_to_unix_ms_or_null(t.endDate),
+                _dt_to_unix_s_or_null(t.endDate),
                 int(t.upcomingTransactionNotification), t.type, int(t.paid),
                 int(t.createdAnotherFutureTransaction), int(t.skipPaid),
                 t.methodAdded, t.transactionOwnerEmail,
                 t.transactionOriginalOwnerEmail,
                 t.sharedKey, t.sharedOldKey, t.sharedStatus,
-                _dt_to_unix_ms_or_null(t.sharedDateUpdated),
+                _dt_to_unix_s_or_null(t.sharedDateUpdated),
                 t.sharedReferenceBudgetPk, t.objectiveFk, t.objectiveLoanFk,
                 t.budgetFksExclude,
             )
@@ -287,14 +291,14 @@ def _insert_budgets(conn: sqlite3.Connection, data: CashewData) -> None:
         [
             (
                 b.budgetPk, b.name, b.amount, b.colour,
-                _dt_to_unix_ms(b.startDate), _dt_to_unix_ms(b.endDate),
+                _dt_to_unix_s(b.startDate), _dt_to_unix_s(b.endDate),
                 b.walletFks, b.categoryFks, b.categoryFksExclude,
                 int(b.income), int(b.archived), int(b.addedTransactionsOnly),
                 b.periodLength, b.reoccurrence,
-                _dt_to_unix_ms(b.dateCreated), _dt_to_unix_ms(b.dateTimeModified),
+                _dt_to_unix_s(b.dateCreated), _dt_to_unix_s(b.dateTimeModified),
                 int(b.pinned), b.order, b.walletFk, b.budgetTransactionFilters,
                 b.memberTransactionFilters, b.sharedKey, b.sharedOwnerMember,
-                _dt_to_unix_ms_or_null(b.sharedDateUpdated),
+                _dt_to_unix_s_or_null(b.sharedDateUpdated),
                 b.sharedMembers, b.sharedAllMembersEver,
                 int(b.isAbsoluteSpendingLimit),
             )
@@ -313,9 +317,9 @@ def _insert_objectives(conn: sqlite3.Connection, data: CashewData) -> None:
         [
             (
                 o.objectivePk, o.type, o.name, o.amount, o.order, o.colour,
-                _dt_to_unix_ms(o.dateCreated),
-                _dt_to_unix_ms_or_null(o.endDate),
-                _dt_to_unix_ms(o.dateTimeModified),
+                _dt_to_unix_s(o.dateCreated),
+                _dt_to_unix_s_or_null(o.endDate),
+                _dt_to_unix_s(o.dateTimeModified),
                 o.iconName, o.emojiIconName, int(o.income),
                 int(o.pinned), int(o.archived), o.walletFk,
             )
@@ -326,10 +330,10 @@ def _insert_objectives(conn: sqlite3.Connection, data: CashewData) -> None:
 
 def _insert_defaults(conn: sqlite3.Connection) -> None:
     """Insert default app settings and schema version marker."""
-    now_ms = _dt_to_unix_ms(datetime.now(timezone.utc))
+    now_s = _dt_to_unix_s(datetime.now(timezone.utc))
     conn.execute(
         "INSERT INTO app_settings (settings_json, date_updated) VALUES (?, ?)",
-        ("{}", now_ms),
+        ("{}", now_s),
     )
 
 
