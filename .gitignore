@@ -1,0 +1,23 @@
+# Data directories (contain personal financial data)
+data/raw/
+data/photos/
+data/output/
+
+# Environment
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
